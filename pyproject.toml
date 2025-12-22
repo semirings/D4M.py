@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "d4m"
+version = "0.1.0"
+description = "Dynamic Distributed Dimensional Data Model (D4M) - downstream fork with healthcare-oriented extensions"
+readme = "README.md"
+requires-python = ">=3.6,<3.10"
+license = { text = "MIT" }
+
+authors = [
+  { name = "MIT Lincoln Laboratory (original authors)" },
+  { name = "Semiring (downstream fork)" }
+]
+
+dependencies = [
+  "numpy",
+  "scipy",
+  "py4j"
+]
+
+[project.urls]
+Homepage = "https://github.com/semiring/D4M.py"
+Upstream = "https://github.com/mitll/D4M.py"
+
+[tool.setuptools]
+packages = { find = {} }
+
+[tool.setuptools.package-data]
+# include non-python files if needed later
+"*" = ["*.txt", "*.md"]
