@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semiring.github.io/aaxis/schemas/aa-triples.json",
+  "title": "AAxis AA (rows/cols/vals arrays)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["rows", "cols", "vals"],
+  "properties": {
+    "rows": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "cols": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "vals": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          { "type": "string" },
+          { "type": "number" },
+          { "type": "boolean" },
+          { "type": "null" }
+        ]
+      }
+    }
+  }
+}

@@ -9,6 +9,9 @@ import copy as cpy
 from numbers import Number
 from typing import Union, Tuple, Optional, Callable, Sequence, List, Dict, Any
 
+import json
+
+JsonScalar = Union[str, int, float, bool, None]
 
 # Use List & Dict for backwards (<3.9) compatibility
 
@@ -2837,3 +2840,140 @@ def save_mat(fname: str, A: "Assoc", name: str = "Aout", **spio_savemat_kwargs) 
 
     io.savemat(fname, mat_dict, **spio_savemat_kwargs)
     return NotImplemented
+
+def read_json(json_string: str) -> "Assoc":
+    """
+    Read an AAxis AA JSON string:
+
+      {
+        "rows": [ ... ],
+        "cols": [ ... ],
+        "vals": [ ... ]
+      }
+
+    Returns:
+      Assoc(rows, cols, vals)
+
+    Validates:
+      - object with required keys rows/cols/vals
+      - rows/cols/vals are arrays, each minItems >= 1
+      - rows/cols entries are non-empty strings
+      - vals entries are JSON scalars (string/number/bool/null)
+      - rows/cols/vals have equal length (triples)
+    """
+    import json
+
+    try:
+        obj = json.loads(json_string)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON: {e}") from e
+
+    if not isinstance(obj, dict):
+        raise ValueError("AA JSON must be an object with keys: rows, cols, vals")
+
+    # Required keys only (schema: additionalProperties=false)
+    for k in ("rows", "cols", "vals"):
+        if k not in obj:
+            raise ValueError(f"AA JSON missing required key: '{k}'")
+
+    extra = set(obj.keys()) - {"rows", "cols", "vals"}
+    if extra:
+        raise ValueError(f"AA JSON has unexpected keys: {sorted(extra)}")
+
+    rows = obj["rows"]
+    cols = obj["cols"]
+    vals = obj["vals"]
+
+    if not isinstance(rows, list) or not isinstance(cols, list) or not isinstance(vals, list):
+        raise ValueError("AA JSON keys 'rows', 'cols', 'vals' must all be arrays")
+
+    if len(rows) < 1 or len(cols) < 1 or len(vals) < 1:
+        raise ValueError("AA JSON arrays 'rows', 'cols', 'vals' must each have at least 1 element")
+
+    if not (len(rows) == len(cols) == len(vals)):
+        raise ValueError(
+            f"Length mismatch: len(rows)={len(rows)}, len(cols)={len(cols)}, len(vals)={len(vals)}"
+        )
+
+    # Schema requires non-empty strings for rows/cols
+    for i, r in enumerate(rows):
+        if not isinstance(r, str) or len(r) == 0:
+            raise ValueError(f"rows[{i}] must be a non-empty string")
+    for i, c in enumerate(cols):
+        if not isinstance(c, str) or len(c) == 0:
+            raise ValueError(f"cols[{i}] must be a non-empty string")
+
+    # vals must be JSON scalar
+    for i, v in enumerate(vals):
+        if v is None:
+            continue
+        if isinstance(v, (str, int, float, bool)):
+            continue
+        raise ValueError(f"vals[{i}] must be a JSON scalar (string/number/bool/null)")
+
+    return Assoc(rows, cols, vals)
+
+
+def write_json(A: "Assoc") -> str:
+    """
+    Write an Assoc as an AAxis AA JSON string:
+
+      { "rows": [...], "cols": [...], "vals": [...] }
+
+    Uses A.find() (D4M.py) which returns (row, col, val) as numpy arrays.
+
+    Guarantees:
+      - rows/cols are non-empty strings
+      - vals are JSON scalars (string/number/bool/null)
+      - arrays are non-empty (raises if Assoc has no triples)
+      - no extra keys
+    """
+    import json
+
+    # D4M Assoc API: returns numpy arrays
+    row_arr, col_arr, val_arr = A.find()
+
+    # Convert to python lists
+    rows = row_arr.tolist() if hasattr(row_arr, "tolist") else list(row_arr)
+    cols = col_arr.tolist() if hasattr(col_arr, "tolist") else list(col_arr)
+    vals = val_arr.tolist() if hasattr(val_arr, "tolist") else list(val_arr)
+
+    if len(rows) < 1:
+        raise ValueError("Cannot serialize empty Assoc (no triples)")
+
+    if not (len(rows) == len(cols) == len(vals)):
+        raise ValueError(
+            f"Assoc find() returned mismatched lengths: len(rows)={len(rows)}, len(cols)={len(cols)}, len(vals)={len(vals)}"
+        )
+
+    # Coerce rows/cols to non-empty strings
+    for i, r in enumerate(rows):
+        if not isinstance(r, str):
+            r = "" if r is None else str(r)
+        if len(r) == 0:
+            raise ValueError(f"Row key at index {i} is empty")
+        rows[i] = r
+
+    for i, c in enumerate(cols):
+        if not isinstance(c, str):
+            c = "" if c is None else str(c)
+        if len(c) == 0:
+            raise ValueError(f"Column key at index {i} is empty")
+        cols[i] = c
+
+    # Ensure vals are JSON scalars; convert numpy scalars to python via .item()
+    out_vals = []
+    for v in vals:
+        if hasattr(v, "item") and callable(getattr(v, "item")):
+            # numpy scalar -> python scalar
+            v = v.item()
+
+        if v is None or isinstance(v, (str, int, float, bool)):
+            out_vals.append(v)
+        else:
+            # Conservative: stringify non-scalar values so JSON remains schema-valid
+            out_vals.append(str(v))
+
+    payload = {"rows": rows, "cols": cols, "vals": out_vals}
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+
