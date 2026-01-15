@@ -1,0 +1,17 @@
+{
+  "rows": [
+    "Patient/P1"
+  ],
+  "cols": [
+    "Patient.address.postalCode|02906",
+    "Patient.birthDate|1952-04-18",
+    "Patient.gender|male",
+    "Patient.identifier.value|MRN-88421",
+    "Patient.name.family|Staples",
+    "Patient.name.given|Robert",
+    "Patient.telecom.value|555-867-5309"
+  ],
+  "vals": [
+    1, 1, 1, 1, 1, 1, 1
+  ]
+}

@@ -3,6 +3,7 @@ from scipy import io, sparse
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
+import json
 import shutil
 import warnings
 import copy as cpy
@@ -2789,8 +2790,171 @@ def writecsv(A: "Assoc", filename: str, **fmtparams) -> None:
 
     return None
 
+def readjson(
+    filename: str,
+    convert_keys: bool = False,
+    convert_values: bool = False,
+    convert: bool = False,
+) -> "Assoc":
+    """
+    Read AA JSON (our interchange format) into an Assoc.
+
+    Supported JSON shapes:
+
+    A) rows/cols/vals (single-row shortcut):
+       {
+         "rows": ["Patient/P1"],
+         "cols": ["Patient.name.family|Staples", ...],
+         "vals": [1, 1, 1, ...]              # length == len(cols)
+       }
+
+    B) rows/cols/vals (dense row-major):
+       {
+         "rows": [...],
+         "cols": [...],
+         "vals": [v00, v01, ... v0n, v10, ...]  # length == len(rows)*len(cols)
+       }
+       Nulls/zeros may appear and are skipped.
+
+    C) explicit triples:
+       {
+         "r": [...],
+         "c": [...],
+         "v": [...]
+       }
+
+    Returns:
+      Assoc(row, col, val)
+    """
+    if convert:
+        convert_keys = True
+        convert_values = True
+
+    with open(filename, "r", encoding="utf-8") as f:
+        obj = json.load(f)
+
+    # --- Case C: explicit triples ---
+    if all(k in obj for k in ("r", "c", "v")):
+        row = list(obj["r"])
+        col = list(obj["c"])
+        val = list(obj["v"])
+
+        if not (len(row) == len(col) == len(val)):
+            raise ValueError("Invalid JSON: r, c, v must have equal length.")
+
+    # --- Cases A/B: rows/cols/vals ---
+    else:
+        if not all(k in obj for k in ("rows", "cols", "vals")):
+            raise ValueError("Invalid JSON: must contain (rows, cols, vals) or (r, c, v).")
+
+        rows = list(obj["rows"])
+        cols = list(obj["cols"])
+        vals = list(obj["vals"])
+
+        nr = len(rows)
+        nc = len(cols)
+        nv = len(vals)
+
+        row, col, val = [], [], []
+
+        # --- Case A: single-row shortcut ---
+        if nr == 1 and nv == nc:
+            rr = rows[0]
+            for j in range(nc):
+                vv = vals[j]
+                if vv is None or vv == "" or vv == 0:
+                    continue
+                row.append(rr)
+                col.append(cols[j])
+                val.append(vv)
+
+        # --- Case B: dense row-major ---
+        elif nv == nr * nc:
+            k = 0
+            for i in range(nr):
+                rr = rows[i]
+                for j in range(nc):
+                    vv = vals[k]
+                    k += 1
+                    if vv is None or vv == "" or vv == 0:
+                        continue
+                    row.append(rr)
+                    col.append(cols[j])
+                    val.append(vv)
+
+        else:
+            raise ValueError(
+                f"Invalid JSON shape: len(rows)={nr}, len(cols)={nc}, len(vals)={nv}. "
+                f"Expected len(vals)==len(cols) for single-row shortcut, or len(vals)==len(rows)*len(cols) for dense."
+            )
+
+    # Optional conversions (mirrors readcsvtotriples behavior)
+    if convert_keys:
+        try:
+            row = util.str_to_num(row)
+        except ValueError:
+            pass
+        try:
+            col = util.str_to_num(col)
+        except ValueError:
+            pass
+
+    if convert_values:
+        try:
+            val = util.str_to_num(val)
+        except ValueError:
+            pass
+
+    return Assoc(row, col, val)
+
+
+def writejson(
+    A: "Assoc",
+    filename: str,
+    *,
+    format: str = "triples",
+    indent: int = 2,
+):
+    """
+    Write an Assoc to JSON.
+
+    Formats:
+
+    format="triples" (DEFAULT, recommended):
+      {
+        "r": [...],
+        "c": [...],
+        "v": [...]
+      }
+
+    format="matrix":
+      {
+        "rows": [...],
+        "cols": [...],
+        "vals": [...]
+      }
+
+      - vals is row-major
+      - null / zero entries are written as null
+      - suitable for slides, demos, small AAs
+
+    Parameters:
+      A        : Assoc
+      filename : output JSON file
+      format   : "triples" | "matrix"
+      indent   : JSON indentation
+    """
+
+    if format not in ("triples", "matrix"):
+        raise ValueError("format must be 'triples'")
 
 def read_mat(fname: str) -> Union[Dict[Any, "Assoc"], "Assoc"]:
+    """Read .mat files created within Matlab/Octave D4M."""
+    x = io.loadmat(fname)
+    """Read .mat files created within Matlab/Octave D4M."""
+    x = io.loadmat(fname)
+    """Read .mat files created within Matlab/Octave D4M."""
+    x = io.loadmat(fname)
     """Read .mat files created within Matlab/Octave D4M."""
     x = io.loadmat(fname)
     Assoc_dict = {}

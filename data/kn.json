@@ -1,0 +1,23 @@
+{
+  "rows": [
+    "Patient/P1",
+    "Encounter/E1",
+    "Practitioner/Pr1",
+    "Practitioner/Pr2"
+  ],
+  "cols": [
+    "Encounter.participant.actor",
+    "Encounter.subject",
+    "Observation.encounter",
+    "Observation.performer",
+    "Observation.subject",
+    "Specimen.collection.collector",
+    "Specimen.subject"
+  ],
+  "vals": [
+    0, 1, 0, 0, 1, 0, 1,
+    0, 0, 1, 0, 0, 0, 0,
+    1, 0, 0, 1, 0, 0, 0,
+    0, 0, 0, 0, 0, 1, 0
+  ]
+}
