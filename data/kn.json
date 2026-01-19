@@ -1,11 +1,16 @@
 {
+  "layout": "row-major",
+  "empty": "",
   "rows": [
     "Patient/P1",
     "Encounter/E1",
+    "Observation/O1",
+    "Specimen/S1",
     "Practitioner/Pr1",
     "Practitioner/Pr2"
   ],
   "cols": [
+    "Patient.id",
     "Encounter.participant.actor",
     "Encounter.subject",
     "Observation.encounter",
@@ -15,9 +20,11 @@
     "Specimen.subject"
   ],
   "vals": [
-    0, 1, 0, 0, 1, 0, 1,
-    0, 0, 1, 0, 0, 0, 0,
-    1, 0, 0, 1, 0, 0, 0,
-    0, 0, 0, 0, 0, 1, 0
+    "Patient/P1",                 "",              "",                "",              "",              "",                "",          "",
+              "", "Practitioner/Pr1",    "Patient/P1",                "",              "",              "",                "",          "",
+              "",                 "",  "Encounter/E1","Practitioner/Pr1","Patient/P1", "",              "",                "",          "",
+              "",                 "",              "",                "",               "",             "","Practitioner/Pr2","Patient/P1",
+              "",                 "",              "",                "",               "",             "",                "",          "",
+              "",                 "",              "",                "",               "",             "",                             ""
   ]
 }
